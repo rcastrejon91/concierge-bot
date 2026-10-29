@@ -1,0 +1,15 @@
+{
+  "hotel_name": "Harbor House Hotel (Demo)",
+  "front_desk": "the property's front desk (contact details not configured)",
+  "check_in": "3:00 PM",
+  "check_out": "11:00 AM",
+  "wifi": "Ask the front desk for the network name and current access details",
+  "breakfast": "7:00–10:00 AM (example hours only)",
+  "parking": "Self-parking may be available (example information only)",
+  "amenities": [
+    "fitness room",
+    "luggage storage",
+    "guest lounge"
+  ],
+  "demo": true
+}
