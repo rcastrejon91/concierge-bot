@@ -16,6 +16,42 @@ def answer(message, mode, hotel):
     return hotel_answer(message, text, hotel)
 
 
+def is_flight_request(text):
+    """Match explicit air-travel language without treating every booking as a flight."""
+    return bool(re.search(
+        r"\b(?:flight|flights|airfare|airline|airlines|airports?|flying|fly|plane tickets?)\b",
+        text,
+    ))
+
+
+def flight_answer(message, text):
+    """Guide air-travel planning without claiming external booking capabilities."""
+    destination = "Chicago (O'Hare/ORD or Midway/MDW)" if re.search(r"\bchicago\b", text) else None
+    time = re.search(r"\b(?:1[0-2]|0?[1-9])(?::[0-5]\d)?\s*(?:am|pm)\b", message, re.I)
+
+    if destination:
+        opening = f"I can help you plan travel to {destination}. "
+    else:
+        opening = "I can help you plan air travel. "
+
+    questions = [
+        "Which airport or city are you departing from?",
+        "What is your travel date (YYYY-MM-DD)?",
+    ]
+    if time:
+        questions.append(f"Is {time.group(0).strip()} your preferred departure or arrival time?")
+    else:
+        questions.append("What departure time works for you?")
+
+    return response(
+        opening
+        + "This demo does not have live flight schedules, fares, or booking access. "
+        + "No flight has been booked or paid for. "
+        + " ".join(questions),
+        ["Flight planning checklist", "Packing checklist"],
+    )
+
+
 def personal_answer(message, text):
     task = re.match(r"^\s*(?:remind me to|remember to|add (?:a )?task(?: to)?|i need to)\s+(.+?)\s*[.!]?\s*$", message, re.I)
     if task:
@@ -26,6 +62,15 @@ def personal_answer(message, text):
             "Here's a task ready for your private checklist. Select Add task to save it on this browser.",
             ["Plan my day", "Packing checklist"],
             {"type": "propose_task", "text": task_text},
+        )
+    if is_flight_request(text):
+        return flight_answer(message, text)
+    if "flight planning checklist" in text:
+        return response(
+            "For a flight, confirm your departure and arrival airports, travel date, "
+            "departure versus arrival time, baggage rules, ID, and ground transportation. "
+            "Check live airline availability before purchasing any ticket.",
+            ["Packing checklist", "Plan my day"],
         )
     if any(word in text for word in ("plan my day", "schedule", "itinerary", "organize my day")):
         return response(
@@ -119,6 +164,15 @@ def hotel_answer(message, text, hotel):
             "it to hotel staff or confirm service. Contact the front desk for assistance.",
             ["Front desk", "Hotel amenities"],
             {"type": "draft_request", "text": detail},
+        )
+    if is_flight_request(text):
+        return flight_answer(message, text)
+    if "flight planning checklist" in text:
+        return response(
+            "To plan your flight, prepare departure and destination airports, travel date, "
+            "preferred departure or arrival time, luggage needs, and transport to the hotel. "
+            "This demo cannot look up live fares or book tickets.",
+            ["Flight to Chicago around 4 PM", "Front desk"],
         )
     if any(k in text for k in ("book", "reservation", "reserve", "availability", "price", "rate")):
         return response(
