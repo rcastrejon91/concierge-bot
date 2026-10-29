@@ -1,7 +1,7 @@
-"""Optional hosted conversational mode; disabled unless explicitly configured.
+"""Optional conversational models; no tools, payments, booking, or service authority.
 
-Only text is sent to the model; no tools, payments, bookings, or service actions.
-The URL is fixed to prevent arbitrary endpoint requests.
+OpenAI hosted chat is opt-in with OPENAI_API_KEY. Ollama local chat is opt-in
+with OLLAMA_MODEL, and uses a fixed localhost endpoint (not a user URL).
 """
 import json
 import os
@@ -9,20 +9,28 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions"
+OLLAMA_CHAT_URL = "http://127.0.0.1:11434/api/chat"
+API_ERRORS = (HTTPError, URLError, TimeoutError, OSError, ValueError,
+              KeyError, IndexError, TypeError)
 
 
 def enabled():
-    return bool(os.environ.get("OPENAI_API_KEY", "").strip())
+    return bool(
+        os.environ.get("OLLAMA_MODEL", "").strip()
+        or os.environ.get("OPENAI_API_KEY", "").strip()
+    )
 
 
 def reply(message, mode, hotel, history=None):
-    """Return model text or None if not configured/unavailable.
+    """Generate a conversation-only response; return None on config/API failure.
 
-    Never forward API error bodies or credentials to users. Caller falls back to
-    deterministic responses. This function has no tools or action privileges.
+    The provider is selected by local environment, never by a chat message.
+    Ollama takes priority if configured, avoiding unexpected hosted API charges.
+    No external tool calls or model actions are supported.
     """
+    ollama_model = os.environ.get("OLLAMA_MODEL", "").strip()
     key = os.environ.get("OPENAI_API_KEY", "").strip()
-    if not key:
+    if not (ollama_model or key):
         return None
 
     hotel_context = json.dumps(hotel, ensure_ascii=False)
@@ -35,7 +43,7 @@ def reply(message, mode, hotel, history=None):
         "flights, calendars, customer accounts, payments, or any live inventory. "
         "NEVER claim to have ordered, scheduled, confirmed, sent, paid for, or "
         "reserved anything; never invent actual prices, schedules, amenities, "
-        "hotel contacts, or a confirmation number. Offer to help compose a "
+        "hotel contacts, or confirmation numbers. Offer to help compose a "
         "request for the guest to contact staff, but clarify it is not submitted. "
         "Only refer to hotel details explicitly present in the JSON below, "
         "which is SAMPLE information, not a real property. "
@@ -57,22 +65,40 @@ def reply(message, mode, hotel, history=None):
                     "role": entry["role"], "content": entry["content"]
                 })
     messages.append({"role": "user", "content": message})
-    payload = json.dumps({
-        "model": os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-        "messages": messages,
-        "max_tokens": 280,
-        "temperature": 0.4,
-    }).encode("utf-8")
-    req = Request(OPENAI_CHAT_URL, data=payload, headers={
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + key,
-    }, method="POST")
+
+    if ollama_model:
+        payload = json.dumps({
+            "model": ollama_model,
+            "messages": messages,
+            "stream": False,
+            "options": {"num_predict": 280, "temperature": 0.4},
+        }).encode("utf-8")
+        req = Request(OLLAMA_CHAT_URL, data=payload,
+                      headers={"Content-Type": "application/json"},
+                      method="POST")
+        timeout = 35
+    else:
+        payload = json.dumps({
+            "model": os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+            "messages": messages,
+            "max_tokens": 280,
+            "temperature": 0.4,
+        }).encode("utf-8")
+        req = Request(OPENAI_CHAT_URL, data=payload, headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + key,
+        }, method="POST")
+        timeout = 12
+
     try:
-        with urlopen(req, timeout=12) as response:
+        with urlopen(req, timeout=timeout) as response:
             data = json.load(response)
-        result = data["choices"][0]["message"]["content"]
+        if ollama_model:
+            result = data["message"]["content"]
+        else:
+            result = data["choices"][0]["message"]["content"]
         if isinstance(result, str) and result.strip():
             return result.strip()[:1800]
-    except (HTTPError, URLError, TimeoutError, OSError, ValueError, KeyError, IndexError, TypeError):
+    except API_ERRORS:
         return None
     return None
