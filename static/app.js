@@ -149,13 +149,13 @@
       description.textContent = "Hospitality at your fingertips. Ask about your stay, amenities, or prepare a service request.";
       assistantName.textContent = "Hotel Concierge";
       addMessage("Welcome! Ask me about check-in, breakfast, parking, amenities, or a housekeeping request. All hotel details shown here are examples.", "assistant");
-      setPrompts(["Check-in time", "Breakfast", "Hotel amenities", "Request extra towels"]);
+      setPrompts(["Check-in time", "Hotel amenities", "Flight to Chicago around 4 PM", "Request extra towels"]);
     } else {
       heading.textContent = "Your day, made simpler.";
       description.textContent = "Plan your day, organize travel, and keep a personal checklist on this device.";
       assistantName.textContent = "Personal Assistant";
       addMessage("Hello! I can help you plan, pack, and prepare a private to-do list. Tasks are saved only in your browser.", "assistant");
-      setPrompts(["Plan my day", "Packing checklist", "Remind me to pack my charger"]);
+      setPrompts(["Plan my day", "Flight planning checklist", "Packing checklist", "Remind me to pack my charger"]);
     }
     chatInput.focus();
   }
@@ -198,6 +198,6 @@
   document.querySelectorAll(".mode-button").forEach(function (button) {
     button.addEventListener("click", function () { setMode(button.dataset.mode); });
   });
-  setPrompts(["Check-in time", "Breakfast", "Hotel amenities", "Request extra towels"]);
+  setPrompts(["Check-in time", "Hotel amenities", "Flight to Chicago around 4 PM", "Request extra towels"]);
   renderTasks();
 })();
