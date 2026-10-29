@@ -63,8 +63,6 @@ def personal_answer(message, text):
             ["Plan my day", "Packing checklist"],
             {"type": "propose_task", "text": task_text},
         )
-    if is_flight_request(text):
-        return flight_answer(message, text)
     if "flight planning checklist" in text:
         return response(
             "For a flight, confirm your departure and arrival airports, travel date, "
@@ -72,6 +70,8 @@ def personal_answer(message, text):
             "Check live airline availability before purchasing any ticket.",
             ["Packing checklist", "Plan my day"],
         )
+    if is_flight_request(text):
+        return flight_answer(message, text)
     if any(word in text for word in ("plan my day", "schedule", "itinerary", "organize my day")):
         return response(
             "Start with your one most important task, then add two smaller tasks. "
@@ -165,8 +165,6 @@ def hotel_answer(message, text, hotel):
             ["Front desk", "Hotel amenities"],
             {"type": "draft_request", "text": detail},
         )
-    if is_flight_request(text):
-        return flight_answer(message, text)
     if "flight planning checklist" in text:
         return response(
             "To plan your flight, prepare departure and destination airports, travel date, "
@@ -174,6 +172,8 @@ def hotel_answer(message, text, hotel):
             "This demo cannot look up live fares or book tickets.",
             ["Flight to Chicago around 4 PM", "Front desk"],
         )
+    if is_flight_request(text):
+        return flight_answer(message, text)
     if any(k in text for k in ("book", "reservation", "reserve", "availability", "price", "rate")):
         return response(
             f"I can help you prepare questions for {name}, but I do not have live "
