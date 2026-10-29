@@ -9,8 +9,29 @@ def response(text, suggestions=None, action=None):
     return result
 
 
+def requires_deterministic_handling(text):
+    """Keep user-approved proposals out of a free-form language-model response."""
+    triggers = (
+        "remind me to", "remember to", "add task", "add a task",
+        "laundry", "dry cleaning", "dry-clean", "wash and iron",
+        "wash and press", "press my", "ironing", "room service",
+        "order food", "send food", "housekeeping", "extra towel",
+        "clean my room", "maintenance", "broken", "book", "reserve",
+        "flight", "airfare", "airport", "airline", "flying",
+        "flight planning checklist",
+    )
+    return any(k in text for k in triggers)
+
+
 def answer(message, mode, hotel):
     text = message.lower().strip()
+    if re.search(r"\b(?:u suck|you suck|this is useless|not helpful|you're useless|you are useless|stop repeating)\b", text):
+        return response(
+            "That wasn't helpful. You asked for practical guest assistance, not an FAQ. "
+            "I can prepare a laundry pickup or room-service request, or help plan a "
+            "flight. The demo cannot contact staff or complete bookings yet.",
+            ["Laundry pickup for tomorrow", "Order room service", "Flight to Chicago at 4pm"],
+        )
     if mode == "personal":
         return personal_answer(message, text)
     return hotel_answer(message, text, hotel)
@@ -156,6 +177,28 @@ def hotel_answer(message, text, hotel):
             "Sample amenities: " + ", ".join(hotel["amenities"]) +
             ". Confirm hours and availability with the front desk.",
             ["Breakfast", "Parking"],
+        )
+    if any(k in text for k in ("dry cleaning", "dry-clean", "laundry", "wash and iron", "wash and press", "press my", "ironing")):
+        detail = message.strip()[:160]
+        timing = " tomorrow morning" if "tomorrow morning" in text else ""
+        return response(
+            "I can prepare a laundry pickup request for washing and pressing"
+            + timing + ". What pickup time would suit you, and when must the items "
+            "be returned? This demo cannot send the request or guarantee that "
+            "the hotel offers laundry service. Use Copy request draft to share "
+            "your request with the front desk.",
+            ["Laundry pickup for tomorrow morning", "Front desk"],
+            {"type": "draft_request", "text": detail},
+        )
+    if any(k in text for k in ("room service", "order food", "send food", "deliver dinner", "deliver lunch")):
+        detail = message.strip()[:160]
+        return response(
+            "I can help prepare a room-service order. What would you like to "
+            "eat or drink, and what delivery time do you prefer? I don't have "
+            "a live menu, pricing, or a connection to hotel staff, so nothing "
+            "will be ordered until you contact the property.",
+            ["Breakfast", "Front desk"],
+            {"type": "draft_request", "text": detail},
         )
     if any(k in text for k in ("housekeeping", "extra towel", "clean my room", "room service", "maintenance", "broken")):
         detail = message.strip()[:160]
