@@ -93,7 +93,7 @@ class ConciergeAppTests(unittest.TestCase):
     def test_ai_chat_calls_adapter_with_safe_history(self):
         from unittest.mock import patch
         with patch("app.ai_enabled", return_value=True), patch(
-            "app.ai_reply", return_value="I can help plan a personal itinerary."
+            "app.ai_reply", return_value="I can help plan a relaxing personal itinerary."
         ) as mock_ai:
             result = self.client.post("/api/chat", json={
                 "message": "I want a relaxing evening",
