@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A privacy-first hotel concierge and personal assistant demo.">
+  <title>Concierge | Hotel & Personal Assistant</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">✦</span>
+        <div><strong>CONCIERGE</strong><span class="brand-sub">by AI Task Flo · demo</span></div>
+      </div>
+      <div class="sidebar-label">YOUR ASSISTANT</div>
+      <div class="mode-list" role="group" aria-label="Assistant mode">
+        <button class="mode-button active" data-mode="hotel" aria-pressed="true"><span aria-hidden="true">⌂</span><span>Hotel concierge</span></button>
+        <button class="mode-button" data-mode="personal" aria-pressed="false"><span aria-hidden="true">◇</span><span>Personal assistant</span></button>
+      </div>
+      <div class="sidebar-separator"></div>
+      <div class="sidebar-label">YOUR PRIVATE CHECKLIST</div>
+      <form id="task-form" class="task-form">
+        <label class="visually-hidden" for="task-input">New task</label>
+        <input id="task-input" maxlength="160" autocomplete="off" placeholder="Add a task...">
+        <button class="small-add" type="submit" aria-label="Add task">+</button>
+      </form>
+      <ul id="task-list" class="task-list" aria-label="Your tasks"></ul>
+      <p id="task-empty" class="task-empty">No tasks yet. Plan your day or add a reminder.</p>
+      <p class="privacy-note">Tasks stay in this browser. No scheduled notifications.</p>
+      <div class="sidebar-footer"><span class="pulse"></span> LOCAL DEMO · NO LIVE BOOKINGS</div>
+    </aside>
+
+    <main class="main">
+      <div class="topline">
+        <span class="eyebrow">YOUR DIGITAL CONCIERGE</span>
+        <span class="demo-pill">SAMPLE PROPERTY</span>
+      </div>
+      <header class="hero">
+        <div class="hero-overline">WELCOME TO</div>
+        <h1 id="mode-heading">{{ hotel.hotel_name }}</h1>
+        <p id="mode-description">Hospitality at your fingertips. Ask about your stay, amenities, or prepare a service request.</p>
+      </header>
+
+      <section class="workspace" aria-label="Assistant workspace">
+        <div class="chat-header">
+          <div class="avatar" aria-hidden="true">✦</div>
+          <div class="chat-identity"><strong id="assistant-name">Hotel Concierge</strong><span>Ready to help · Demo assistant</span></div>
+          <span class="chat-status"><span class="pulse"></span> AVAILABLE</span>
+        </div>
+        <div class="chat-body" id="messages" role="log" aria-live="polite" aria-relevant="additions">
+          <div class="message assistant">
+            <div class="bubble">Welcome! Ask me about check-in, breakfast, parking, amenities, or a housekeeping request. All hotel details shown here are examples.</div>
+          </div>
+        </div>
+        <div id="quick-prompts" class="quick-prompts" aria-label="Suggested questions">
+          <button type="button" data-prompt="Check-in time">Check-in time</button>
+          <button type="button" data-prompt="Breakfast">Breakfast</button>
+          <button type="button" data-prompt="Hotel amenities">Hotel amenities</button>
+          <button type="button" data-prompt="Request extra towels">Extra towels</button>
+        </div>
+        <form id="chat-form" class="chat-form">
+          <label class="visually-hidden" for="chat-input">Message assistant</label>
+          <input id="chat-input" maxlength="1000" autocomplete="off" placeholder="How can I help you today?" required>
+          <button id="send-button" type="submit" aria-label="Send message">Send <span aria-hidden="true">↗</span></button>
+        </form>
+        <p class="chat-disclaimer">Demo only. No real hotel bookings or service orders are placed. Please avoid sharing sensitive personal information.</p>
+      </section>
+      <footer class="main-footer">CONCIERGE <span>×</span> AI TASK FLO <span>·</span> DESIGNED FOR HOSPITALITY & EVERYDAY LIFE</footer>
+    </main>
+  </div>
+</body>
+</html>
