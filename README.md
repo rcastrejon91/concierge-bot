@@ -3,6 +3,7 @@
 A self-hostable **Flask** concierge demo built for **AI Task Flo**. It includes a responsive chat interface with two modes:
 
 - **Hotel Concierge:** Answer sample questions about check-in, check-out, Wi-Fi, breakfast, parking and amenities. Prepare service-request drafts. It never claims to have made a booking or sent an order.
+- **Flight trip planning:** Recognize flight requests in either mode and request origin, travel date, and preferred departure/arrival time. This is an information-gathering demo, **not** live flight search or ticket purchasing.
 - **Personal Assistant:** Help plan a day or pack for travel, and propose checklist items. Tasks are added only when a user selects **Add task**, and are saved in that browser's local storage.
 
 The repository began as a README-only project. This starter implementation is intentionally **rules-based and offline-capable**. No AI key, booking system, or external API is needed.
