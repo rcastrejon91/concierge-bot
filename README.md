@@ -32,9 +32,21 @@ git fetch origin feat/hotel-concierge-personal-assistant
 git switch feat/hotel-concierge-personal-assistant
 ~~~
 
+## Free local AI conversation with Ollama
+
+If you have [Ollama](https://ollama.com/) installed, you can use a local model **without an OpenAI API key**. Make sure Ollama is running and download a small chat model once:
+
+~~~powershell
+ollama pull llama3.2
+$env:OLLAMA_MODEL = "llama3.2"
+.\.venv\Scripts\python.exe app.py
+~~~
+
+The model must be available on the same computer as the Flask server. Conversations use the fixed local endpoint http://127.0.0.1:11434/api/chat. If both OLLAMA_MODEL and OPENAI_API_KEY are configured, **local Ollama takes priority**. Ollama model quality, speed, and hardware requirements vary.
+
 ## Enable conversational AI (optional)
 
-Without an API key, the bot is a **basic demo** and will only recognize preprogrammed topics. To answer more open-ended guest questions, enable the OpenAI API integration. This uses **separate API billing**; a ChatGPT subscription does **not** automatically include API credits.
+Without Ollama or an API key configured, the bot is a **basic demo** and will only recognize preprogrammed topics. To answer more open-ended guest questions, enable the OpenAI API integration. This uses **separate API billing**; a ChatGPT subscription does **not** automatically include API credits.
 
 In PowerShell, from the project directory:
 
@@ -46,7 +58,7 @@ $env:OPENAI_MODEL = "gpt-4o-mini"
 
 Use a **separately created, restricted API key**. Never paste a real key into chat, GitHub, source files, browser JavaScript, or a public environment variable. The value above exists only in the current PowerShell session. You can remove it with the PowerShell command Remove-Item Env:OPENAI_API_KEY.
 
-Open http://127.0.0.1:8000/api/capabilities to see whether AI chat is enabled. General conversations send the **current message and up to eight recent messages** to the API. The app does not persist transcripts, but requests sent to an external AI service are subject to that provider's terms and data-handling policies.
+Open http://127.0.0.1:8000/api/capabilities to see whether an AI chat provider is configured. General conversations send the **current message and up to eight recent messages** to the API. The app does not persist transcripts, but requests sent to an external AI service are subject to that provider's terms and data-handling policies.
 
 **The optional AI mode is conversation only:** it cannot contact hotel staff, make reservations, charge cards, set reminders, or buy airline tickets. Service/booking requests use deterministic draft handling; no free-form model output is authorized to call external actions. When the API is unavailable, the app falls back to basic demo responses.
 
