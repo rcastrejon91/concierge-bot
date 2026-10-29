@@ -3,9 +3,10 @@
 A self-hostable **Flask** concierge demo built for **AI Task Flo**. It includes a responsive chat interface with two modes:
 
 - **Hotel Concierge:** Answer sample questions about check-in, check-out, Wi-Fi, breakfast, parking and amenities. Prepare service-request drafts. It never claims to have made a booking or sent an order.
+- **Flight trip planning:** Recognize flight requests in either mode and request origin, travel date, and preferred departure/arrival time. This is an information-gathering demo, **not** live flight search or ticket purchasing.
 - **Personal Assistant:** Help plan a day or pack for travel, and propose checklist items. Tasks are added only when a user selects **Add task**, and are saved in that browser's local storage.
 
-The repository began as a README-only project. This starter implementation is intentionally **rules-based and offline-capable**. No AI key, booking system, or external API is needed.
+The repository began as a README-only project. It works in **offline, rules-based demo mode** without any credentials. Optionally, you can enable **real AI conversation** for general questions. Service and booking actions remain permission-bounded drafts, never silently executed.
 
 ## Quick start
 
@@ -30,6 +31,36 @@ If you are reviewing this in a PR before merging, clone the branch with:
 git fetch origin feat/hotel-concierge-personal-assistant
 git switch feat/hotel-concierge-personal-assistant
 ~~~
+
+## Free local AI conversation with Ollama
+
+If you have [Ollama](https://ollama.com/) installed, you can use a local model **without an OpenAI API key**. Make sure Ollama is running and download a small chat model once:
+
+~~~powershell
+ollama pull llama3.2
+$env:OLLAMA_MODEL = "llama3.2"
+.\.venv\Scripts\python.exe app.py
+~~~
+
+The model must be available on the same computer as the Flask server. Conversations use the fixed local endpoint http://127.0.0.1:11434/api/chat. If both OLLAMA_MODEL and OPENAI_API_KEY are configured, **local Ollama takes priority**. Ollama model quality, speed, and hardware requirements vary.
+
+## Enable conversational AI (optional)
+
+Without Ollama or an API key configured, the bot is a **basic demo** and will only recognize preprogrammed topics. To answer more open-ended guest questions, enable the OpenAI API integration. This uses **separate API billing**; a ChatGPT subscription does **not** automatically include API credits.
+
+In PowerShell, from the project directory:
+
+~~~powershell
+$env:OPENAI_API_KEY = Read-Host "Enter your OpenAI API key"
+$env:OPENAI_MODEL = "gpt-4o-mini"
+.\.venv\Scripts\python.exe app.py
+~~~
+
+Use a **separately created, restricted API key**. Never paste a real key into chat, GitHub, source files, browser JavaScript, or a public environment variable. The value above exists only in the current PowerShell session. You can remove it with the PowerShell command Remove-Item Env:OPENAI_API_KEY.
+
+Open http://127.0.0.1:8000/api/capabilities to see whether an AI chat provider is configured. General conversations send the **current message and up to eight recent messages** to the API. The app does not persist transcripts, but requests sent to an external AI service are subject to that provider's terms and data-handling policies.
+
+**The optional AI mode is conversation only:** it cannot contact hotel staff, make reservations, charge cards, set reminders, or buy airline tickets. Service/booking requests use deterministic draft handling; no free-form model output is authorized to call external actions. When the API is unavailable, the app falls back to basic demo responses.
 
 ## Run tests
 
@@ -74,7 +105,7 @@ Responses contain **reply**, **suggestions**, and sometimes **action**, such as 
 - The demo has **no user authentication, room verification, admin dashboard, push notifications, payment processing, property-management-system integration, email sending, or live reservations**.
 - Housekeeping and service requests are **copyable drafts only**; nothing is dispatched to hotel staff.
 - The hotel details are examples. Do not represent this project as integrated with a real property until verified and authorized.
-- This is a deterministic MVP, **not** an LLM-powered agent.
+- Default mode is deterministic and limited. With a configured API key, general conversation uses a hosted LLM. It is **not** an autonomous agent with tools or purchase authority.
 - Production hosting needs HTTPS, request throttling, monitoring, and abuse protection. Future guest authentication, real service routing, email/calendar, or reservation integrations require explicit authorization and appropriate privacy controls.
 
 ## Roadmap
@@ -82,7 +113,7 @@ Responses contain **reply**, **suggestions**, and sometimes **action**, such as 
 1. Configure real property information and verified hotel contacts.
 2. Add secure staff authentication and confirmation workflows for service requests.
 3. Integrate authorized PMS/booking APIs with explicit booking confirmations.
-4. Optionally connect AI Task Flo/Lira for more flexible dialogue behind permission checks.
+4. Connect AI Task Flo/Lira behind authenticated model endpoints if you prefer Lira over the optional OpenAI API integration.
 5. Add multilingual support and opt-in reminders.
 
 ## License

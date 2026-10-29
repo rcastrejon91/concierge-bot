@@ -17,6 +17,8 @@
   const STORAGE_KEY = "aitaskflo-concierge-demo-tasks-v1";
   let mode = "hotel";
   let busy = false;
+  let chatHistory = [];
+
   let tasks = [];
 
   try {
@@ -144,18 +146,19 @@
       button.setAttribute("aria-pressed", String(selected));
     });
     messages.replaceChildren();
+    chatHistory = [];
     if (mode === "hotel") {
       heading.textContent = hotelName;
       description.textContent = "Hospitality at your fingertips. Ask about your stay, amenities, or prepare a service request.";
       assistantName.textContent = "Hotel Concierge";
       addMessage("Welcome! Ask me about check-in, breakfast, parking, amenities, or a housekeeping request. All hotel details shown here are examples.", "assistant");
-      setPrompts(["Check-in time", "Breakfast", "Hotel amenities", "Request extra towels"]);
+      setPrompts(["Check-in time", "Hotel amenities", "Flight to Chicago around 4 PM", "Request extra towels"]);
     } else {
       heading.textContent = "Your day, made simpler.";
       description.textContent = "Plan your day, organize travel, and keep a personal checklist on this device.";
       assistantName.textContent = "Personal Assistant";
       addMessage("Hello! I can help you plan, pack, and prepare a private to-do list. Tasks are saved only in your browser.", "assistant");
-      setPrompts(["Plan my day", "Packing checklist", "Remind me to pack my charger"]);
+      setPrompts(["Plan my day", "Flight planning checklist", "Packing checklist", "Remind me to pack my charger"]);
     }
     chatInput.focus();
   }
@@ -168,15 +171,18 @@
     chatInput.value = "";
     addMessage(value, "user");
     const currentMode = mode;
+    const historyForRequest = chatHistory.slice(-8);
     try {
       const result = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: value, mode: currentMode })
+        body: JSON.stringify({ message: value, mode: currentMode, history: historyForRequest })
       });
       const payload = await result.json();
       if (!result.ok) throw new Error(payload.error || "The request failed.");
       addMessage(payload.reply, "assistant", payload.action);
+      chatHistory.push({ role: "user", content: value }, { role: "assistant", content: String(payload.reply || "").slice(0, 1000) });
+      chatHistory = chatHistory.slice(-8);
       if (Array.isArray(payload.suggestions)) setPrompts(payload.suggestions.slice(0, 4));
     } catch (error) {
       addMessage("I couldn't respond just now. " + (error.message || "Try again."), "assistant");
@@ -198,6 +204,17 @@
   document.querySelectorAll(".mode-button").forEach(function (button) {
     button.addEventListener("click", function () { setMode(button.dataset.mode); });
   });
-  setPrompts(["Check-in time", "Breakfast", "Hotel amenities", "Request extra towels"]);
+  setPrompts(["Check-in time", "Hotel amenities", "Flight to Chicago around 4 PM", "Request extra towels"]);
   renderTasks();
+
+  fetch("/api/capabilities")
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (data) {
+      const status = document.getElementById("assistant-capability");
+      if (!status || !data) return;
+      status.textContent = data.ai_chat_enabled
+        ? "AI conversation enabled · Requests are drafts only"
+        : "Basic demo mode · Configure an AI key for flexible conversation";
+    })
+    .catch(function () { /* App remains usable without capability lookup. */ });
 })();

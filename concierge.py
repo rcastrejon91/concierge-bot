@@ -9,11 +9,68 @@ def response(text, suggestions=None, action=None):
     return result
 
 
+def requires_deterministic_handling(text):
+    """Keep user-approved proposals out of a free-form language-model response."""
+    triggers = (
+        "remind me to", "remember to", "add task", "add a task",
+        "laundry", "dry cleaning", "dry-clean", "wash and iron",
+        "wash and press", "press my", "ironing", "room service",
+        "order food", "send food", "housekeeping", "extra towel",
+        "clean my room", "maintenance", "broken", "book", "reserve",
+        "flight", "airfare", "airport", "airline", "flying",
+        "flight planning checklist",
+    )
+    return any(k in text for k in triggers)
+
+
 def answer(message, mode, hotel):
     text = message.lower().strip()
+    if re.search(r"\b(?:u suck|you suck|this is useless|not helpful|you're useless|you are useless|stop repeating)\b", text):
+        return response(
+            "That wasn't helpful. You asked for practical guest assistance, not an FAQ. "
+            "I can prepare a laundry pickup or room-service request, or help plan a "
+            "flight. The demo cannot contact staff or complete bookings yet.",
+            ["Laundry pickup for tomorrow", "Order room service", "Flight to Chicago at 4pm"],
+        )
     if mode == "personal":
         return personal_answer(message, text)
     return hotel_answer(message, text, hotel)
+
+
+def is_flight_request(text):
+    """Match explicit air-travel language without treating every booking as a flight."""
+    return bool(re.search(
+        r"\b(?:flight|flights|airfare|airline|airlines|airports?|flying|fly|plane tickets?)\b",
+        text,
+    ))
+
+
+def flight_answer(message, text):
+    """Guide air-travel planning without claiming external booking capabilities."""
+    destination = "Chicago (O'Hare/ORD or Midway/MDW)" if re.search(r"\bchicago\b", text) else None
+    time = re.search(r"\b(?:1[0-2]|0?[1-9])(?::[0-5]\d)?\s*(?:am|pm)\b", message, re.I)
+
+    if destination:
+        opening = f"I can help you plan travel to {destination}. "
+    else:
+        opening = "I can help you plan air travel. "
+
+    questions = [
+        "Which airport or city are you departing from?",
+        "What is your travel date (YYYY-MM-DD)?",
+    ]
+    if time:
+        questions.append(f"Is {time.group(0).strip()} your preferred departure or arrival time?")
+    else:
+        questions.append("What departure time works for you?")
+
+    return response(
+        opening
+        + "This demo does not have live flight schedules, fares, or booking access. "
+        + "No flight has been booked or paid for. "
+        + " ".join(questions),
+        ["Flight planning checklist", "Packing checklist"],
+    )
 
 
 def personal_answer(message, text):
@@ -27,6 +84,15 @@ def personal_answer(message, text):
             ["Plan my day", "Packing checklist"],
             {"type": "propose_task", "text": task_text},
         )
+    if "flight planning checklist" in text:
+        return response(
+            "For a flight, confirm your departure and arrival airports, travel date, "
+            "departure versus arrival time, baggage rules, ID, and ground transportation. "
+            "Check live airline availability before purchasing any ticket.",
+            ["Packing checklist", "Plan my day"],
+        )
+    if is_flight_request(text):
+        return flight_answer(message, text)
     if any(word in text for word in ("plan my day", "schedule", "itinerary", "organize my day")):
         return response(
             "Start with your one most important task, then add two smaller tasks. "
@@ -112,6 +178,28 @@ def hotel_answer(message, text, hotel):
             ". Confirm hours and availability with the front desk.",
             ["Breakfast", "Parking"],
         )
+    if any(k in text for k in ("dry cleaning", "dry-clean", "laundry", "wash and iron", "wash and press", "press my", "ironing")):
+        detail = message.strip()[:160]
+        timing = " tomorrow morning" if "tomorrow morning" in text else ""
+        return response(
+            "I can prepare a laundry pickup request for washing and pressing"
+            + timing + ". What pickup time would suit you, and when must the items "
+            "be returned? This demo cannot send the request or guarantee that "
+            "the hotel offers laundry service. Use Copy request draft to share "
+            "your request with the front desk.",
+            ["Laundry pickup for tomorrow morning", "Front desk"],
+            {"type": "draft_request", "text": detail},
+        )
+    if any(k in text for k in ("room service", "order food", "send food", "deliver dinner", "deliver lunch")):
+        detail = message.strip()[:160]
+        return response(
+            "I can help prepare a room-service order. What would you like to "
+            "eat or drink, and what delivery time do you prefer? I don't have "
+            "a live menu, pricing, or a connection to hotel staff, so nothing "
+            "will be ordered until you contact the property.",
+            ["Breakfast", "Front desk"],
+            {"type": "draft_request", "text": detail},
+        )
     if any(k in text for k in ("housekeeping", "extra towel", "clean my room", "room service", "maintenance", "broken")):
         detail = message.strip()[:160]
         return response(
@@ -120,6 +208,15 @@ def hotel_answer(message, text, hotel):
             ["Front desk", "Hotel amenities"],
             {"type": "draft_request", "text": detail},
         )
+    if "flight planning checklist" in text:
+        return response(
+            "To plan your flight, prepare departure and destination airports, travel date, "
+            "preferred departure or arrival time, luggage needs, and transport to the hotel. "
+            "This demo cannot look up live fares or book tickets.",
+            ["Flight to Chicago around 4 PM", "Front desk"],
+        )
+    if is_flight_request(text):
+        return flight_answer(message, text)
     if any(k in text for k in ("book", "reservation", "reserve", "availability", "price", "rate")):
         return response(
             f"I can help you prepare questions for {name}, but I do not have live "

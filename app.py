@@ -4,7 +4,8 @@ import os
 from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request
-from concierge import answer
+from concierge import answer, requires_deterministic_handling
+from llm_client import enabled as ai_enabled, reply as ai_reply
 
 ROOT = Path(__file__).resolve().parent
 MAX_MESSAGE_LENGTH = 1000
@@ -39,6 +40,15 @@ def create_app(test_config=None):
     def health():
         return jsonify({"ok": True, "service": "concierge-bot"})
 
+    @app.get("/api/capabilities")
+    def capabilities():
+        return jsonify({
+            "ai_chat_enabled": ai_enabled(),
+            "live_reservations": False,
+            "staff_dispatch": False,
+            "flight_booking": False,
+        })
+
     @app.post("/api/chat")
     def chat():
         if not request.is_json:
@@ -54,7 +64,21 @@ def create_app(test_config=None):
             return jsonify({"error": "Message must be 1000 characters or fewer."}), 400
         if mode not in ("hotel", "personal"):
             return jsonify({"error": "Mode must be hotel or personal."}), 400
-        return jsonify(answer(message.strip(), mode, hotel))
+        history = body.get("history", [])
+        if not isinstance(history, list) or len(history) > 8 or any(
+            not isinstance(item, dict)
+            or item.get("role") not in ("user", "assistant")
+            or not isinstance(item.get("content"), str)
+            or not 0 < len(item["content"]) <= MAX_MESSAGE_LENGTH
+            for item in history
+        ):
+            return jsonify({"error": "Invalid conversation history."}), 400
+        message = message.strip()
+        if ai_enabled() and not requires_deterministic_handling(message.lower()):
+            reply = ai_reply(message, mode, hotel, history)
+            if reply:
+                return jsonify({"reply": reply, "suggestions": []})
+        return jsonify(answer(message, mode, hotel))
 
     return app
 
