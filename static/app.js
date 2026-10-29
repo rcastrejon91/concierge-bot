@@ -17,6 +17,8 @@
   const STORAGE_KEY = "aitaskflo-concierge-demo-tasks-v1";
   let mode = "hotel";
   let busy = false;
+  let chatHistory = [];
+
   let tasks = [];
 
   try {
@@ -144,6 +146,7 @@
       button.setAttribute("aria-pressed", String(selected));
     });
     messages.replaceChildren();
+    chatHistory = [];
     if (mode === "hotel") {
       heading.textContent = hotelName;
       description.textContent = "Hospitality at your fingertips. Ask about your stay, amenities, or prepare a service request.";
@@ -168,15 +171,18 @@
     chatInput.value = "";
     addMessage(value, "user");
     const currentMode = mode;
+    const historyForRequest = chatHistory.slice(-8);
     try {
       const result = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: value, mode: currentMode })
+        body: JSON.stringify({ message: value, mode: currentMode, history: historyForRequest })
       });
       const payload = await result.json();
       if (!result.ok) throw new Error(payload.error || "The request failed.");
       addMessage(payload.reply, "assistant", payload.action);
+      chatHistory.push({ role: "user", content: value }, { role: "assistant", content: String(payload.reply || "").slice(0, 1000) });
+      chatHistory = chatHistory.slice(-8);
       if (Array.isArray(payload.suggestions)) setPrompts(payload.suggestions.slice(0, 4));
     } catch (error) {
       addMessage("I couldn't respond just now. " + (error.message || "Try again."), "assistant");
@@ -200,4 +206,15 @@
   });
   setPrompts(["Check-in time", "Hotel amenities", "Flight to Chicago around 4 PM", "Request extra towels"]);
   renderTasks();
+
+  fetch("/api/capabilities")
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (data) {
+      const status = document.getElementById("assistant-capability");
+      if (!status || !data) return;
+      status.textContent = data.ai_chat_enabled
+        ? "AI conversation enabled · Requests are drafts only"
+        : "Basic demo mode · Configure an AI key for flexible conversation";
+    })
+    .catch(function () { /* App remains usable without capability lookup. */ });
 })();
